@@ -13,6 +13,7 @@
     "prefix":"your prefix here"
 ```
 ###### next step install node modules
+use yarn
 ``` yarn
 yarn install
 ```
@@ -22,10 +23,11 @@ npm install
 ```
 
 ## run 
+use yarn
 ``` yarn
 yarn start
 ```
-or
+or npm if you want
 ```npm 
 npm start
 ```
