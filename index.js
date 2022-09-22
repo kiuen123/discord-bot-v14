@@ -74,21 +74,21 @@ client.on('messageCreate', async message => {
 
 	// play music
 	if (message.content.startsWith(`${prefix}play`)) {
-		execute(message, serverQueue);
+		await execute(message, serverQueue);
 		await message.reply(`play: ${message.content.split(' ')[1]}`);
 		return;
 	}
 
 	// stop music
 	if (message.content.startsWith(`${prefix}stop`)) {
-		execute(message, serverQueue);
+		await execute(message, serverQueue);
 		await message.reply(`stop: ${1}`);
 		return;
 	}
 
 	// skip music
 	if (message.content.startsWith(`${prefix}skip`)) {
-		execute(message, serverQueue);
+		await execute(message, serverQueue);
 		await message.reply(`skip: ${1}`);
 		return;
 	}
