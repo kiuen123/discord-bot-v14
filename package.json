@@ -15,8 +15,10 @@
     "module-alias": "^2.2.2",
     "moment": "^2.29.4",
     "nodemon": "^2.0.19",
+    "opusscript": "^0.0.8",
     "reconlx": "^2.5.6",
     "scdl-core": "^1.1.0",
+    "tweetnacl": "^1.0.3",
     "ytdl-core": "^4.11.2",
     "ytpl": "^2.3.0",
     "ytsr": "^3.8.0"

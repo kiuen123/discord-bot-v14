@@ -1,9 +1,10 @@
 // Require the necessary discord.js classes
 const { Client, Collection, GatewayIntentBits, Partials } = require('discord.js');
-const { token, prefix } = require('./config.json');
+const { token, prefix, guildId } = require('./config.json');
 const fs = require('node:fs');
 const path = require('node:path');
 const ytdl = require('ytdl-core');
+const { joinVoiceChannel } = require('@discordjs/voice');
 
 // Create a new client instance ----------------------------
 const client = new Client({
@@ -25,7 +26,7 @@ const client = new Client({
 
 // Commands ------------------------------------------------
 client.commands = new Collection();
-const commandsPath = path.join(__dirname, 'commands');
+const commandsPath = path.join(__dirname, 'slash-commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 
 for (const file of commandFiles) {
@@ -70,26 +71,27 @@ client.on('messageCreate', async message => {
 	if (message.author.bot) return;
 	if (!message.content.startsWith(prefix)) return;
 	console.log(`user ${message.author.tag} in channel #${message.channel.name} sent a message\n${message.content}`);
+	
 	const serverQueue = queue.get(message.guild.id);
 
 	// play music
 	if (message.content.startsWith(`${prefix}play`)) {
+		// await message.reply(`play: ${message.content.split(' ')[1]}`);
 		await execute(message, serverQueue);
-		await message.reply(`play: ${message.content.split(' ')[1]}`);
 		return;
 	}
 
 	// stop music
 	if (message.content.startsWith(`${prefix}stop`)) {
-		await execute(message, serverQueue);
-		await message.reply(`stop: ${1}`);
+		// await message.reply(`stop: ${1}`);
+		await stop(message, serverQueue);
 		return;
 	}
 
 	// skip music
 	if (message.content.startsWith(`${prefix}skip`)) {
-		await execute(message, serverQueue);
-		await message.reply(`skip: ${1}`);
+		// await message.reply(`skip: ${1}`);
+		await skip(message, serverQueue);
 		return;
 	}
 
@@ -114,15 +116,20 @@ client.on('messageCreate', async message => {
 const execute = async (message, serverQueue) => {
 	const args = message.content.split(' ');
 
-	const voiceChannel = message.member.voice.channel;
-	if (!voiceChannel) {
-		return message.channel.send(
+	const connection = joinVoiceChannel({
+		channelId: message.member.voice.channel.id,
+		guildId: guildId,
+		adapterCreator: message.guild.voiceAdapterCreator,
+	});
+	if (connection.channelId==false) {
+		return message.reply(
 			'You need to be in a voice channel to play music!',
 		);
 	}
-	const permissions = voiceChannel.permissionsFor(message.client.user);
+
+	const permissions = message.member.voice.channel.permissionsFor(message.client.user);
 	if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
-		return message.channel.send(
+		return message.reply(
 			'I need the permissions to join and speak in your voice channel!',
 		);
 	}
@@ -136,8 +143,7 @@ const execute = async (message, serverQueue) => {
 	if (!serverQueue) {
 		const queueContruct = {
 			textChannel: message.channel,
-			voiceChannel: voiceChannel,
-			connection: null,
+			connection: connection,
 			songs: [],
 			volume: 5,
 			playing: true,
@@ -148,41 +154,41 @@ const execute = async (message, serverQueue) => {
 		queueContruct.songs.push(song);
 
 		try {
-			const connection = await voiceChannel.join();
-			queueContruct.connection = connection;
+			const connect = connection;
+			queueContruct.connection = connect;
 			play(message.guild, queueContruct.songs[0]);
 		}
 		catch (err) {
 			console.log(err);
 			queue.delete(message.guild.id);
-			return message.channel.send(err);
+			return message.reply(err);
 		}
 	}
 	else {
 		serverQueue.songs.push(song);
-		return message.channel.send(`${song.title} has been added to the queue!`);
+		return message.reply(`${song.title} has been added to the queue!`);
 	}
 };
 
 
 const skip = (message, serverQueue) => {
 	if (!message.member.voice.channel) {
-		return message.channel.send(
+		return message.reply(
 			'You have to be in a voice channel to stop the music!',
 		);
 	}
-	if (!serverQueue) {return message.channel.send('There is no song that I could skip!');}
+	if (!serverQueue) {return message.reply('There is no song that I could skip!');}
 	serverQueue.connection.dispatcher.end();
 };
 
 const stop = (message, serverQueue) => {
 	if (!message.member.voice.channel) {
-		return message.channel.send(
+		return message.reply(
 			'Vào đây mà bảo Nico ngừng hát nha!',
 		);
 	}
 
-	if (!serverQueue) {return message.channel.send('Nico có hát bài nào đâu mà dừng');}
+	if (!serverQueue) {return message.reply('Nico có hát bài nào đâu mà dừng');}
 
 	serverQueue.songs = [];
 	serverQueue.connection.dispatcher.end();
@@ -192,12 +198,12 @@ const stop = (message, serverQueue) => {
 const play = (guild, song) => {
 	const serverQueue = queue.get(guild.id);
 	if (!song) {
-		serverQueue.voiceChannel.leave();
+		// serverQueue.connection.channelId.leave();
 		queue.delete(guild.id);
 		return;
 	}
 
-	const dispatcher = serverQueue.connection
+	const dispatcher = serverQueue.connection.channelId
 		.play(ytdl(song.url))
 		.on('finish', () => {
 			serverQueue.songs.shift();
