@@ -10,6 +10,7 @@
 
 -   now can play music with youtube link
 -   can play, next, stop song using prefix
+-   error when trying to play music without not in the channel
 
 ## install
 
