@@ -80,7 +80,7 @@ client.on("messageCreate", async (message) => {
     console.log(`user ${message.author.tag} in channel #${message.channel.name} sent a message\n${message.content}`);
     let connection = joinVoiceChannel({
         channelId: message.member.voice.channel.id,
-        guildId: guildId[0],
+        guildId: guildId[1],
         adapterCreator: message.guild.voiceAdapterCreator,
     });
     // play music
