@@ -78,21 +78,13 @@ client.on("messageCreate", async (message) => {
     if (message.author.bot) return;
     if (!message.content.startsWith(prefix)) return;
     console.log(`user ${message.author.tag} in channel #${message.channel.name} sent a message\n${message.content}`);
-
     let connection = joinVoiceChannel({
-        channelId: "",
-        guildId: guildId[1],
+        channelId: message.member.voice.channel.id,
+        guildId: guildId[0],
         adapterCreator: message.guild.voiceAdapterCreator,
     });
-
     // play music
     if (message.content.startsWith(`${prefix}play`) || message.content.startsWith(`${prefix}p`)) {
-        if (!message.member.voice.channel) {
-            message.reply("Bạn phải vào voice channel trước khi dùng lệnh này!");
-            return;
-        } else {
-            connection.channelId = message.member.voice.channel.id;
-        }
         // add music to list
         // kiểm tra xem link có hợp lệ không
         check = ytdl.validateURL(message.content.split(" ")[1]);
@@ -100,9 +92,7 @@ client.on("messageCreate", async (message) => {
             // nếu hợp lệ thì thêm link vào mảng chứa các bài hát
             resource.push(message.content.split(" ")[1]);
             // play music
-            connection.on(VoiceConnectionStatus.Ready, async () => {
-                await play(connection, resource[current_song]);
-            });
+            await play(connection, resource[current_song]);
         } else {
             // nếu không hợp lệ thì thông báo cho user
             await message.reply(`link không hợp lệ`);
@@ -159,16 +149,18 @@ const play = async (connect, song) => {
     let stream = createAudioResource(ytdl(song, { filter: "audioonly" }));
     player.play(stream);
 
-    // // state change
-    // player.on("stateChange", (oldState, newState) => {
-    //     console.log(`Player transitioned from ${oldState.status} to ${newState.status}`);
-    // });
+    // state change
+    player.on("stateChange", (oldState, newState) => {
+        console.log(`Player transitioned from ${oldState.status} to ${newState.status}`);
+    });
 
     // show error
     player.on("error", (error) => {
         console.error(error);
     });
-
+    player.on(AudioPlayerStatus.AutoPaused, async () => {
+        player.unpause();
+    });
     // play next song
     player.on(AudioPlayerStatus.Idle, async () => {
         if (resource.length > current_song + 1) {
