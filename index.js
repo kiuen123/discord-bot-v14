@@ -87,9 +87,10 @@ client.on("messageCreate", async (message) => {
 
     // play music
     if (message.content.startsWith(`${prefix}play`) || message.content.startsWith(`${prefix}p`)) {
-        if (!message.member.voice.channel.id)
-            return message.reply("Bạn phải vào voice channel trước khi dùng lệnh này!");
-        else {
+        if (!message.member.voice.channel) {
+            message.reply("Bạn phải vào voice channel trước khi dùng lệnh này!");
+            return;
+        } else {
             connection.channelId = message.member.voice.channel.id;
         }
         // add music to list
