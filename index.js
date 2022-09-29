@@ -80,14 +80,18 @@ client.on("messageCreate", async (message) => {
     console.log(`user ${message.author.tag} in channel #${message.channel.name} sent a message\n${message.content}`);
 
     let connection = joinVoiceChannel({
-        channelId: message.member.voice.channel.id,
+        channelId: "",
         guildId: guildId[1],
         adapterCreator: message.guild.voiceAdapterCreator,
     });
 
     // play music
     if (message.content.startsWith(`${prefix}play`) || message.content.startsWith(`${prefix}p`)) {
-        if (!message.member.voice.channel) return message.reply("Bạn phải vào voice channel trước khi dùng lệnh này!");
+        if (!message.member.voice.channel.id)
+            return message.reply("Bạn phải vào voice channel trước khi dùng lệnh này!");
+        else {
+            connection.channelId = message.member.voice.channel.id;
+        }
         // add music to list
         // kiểm tra xem link có hợp lệ không
         check = ytdl.validateURL(message.content.split(" ")[1]);
