@@ -87,6 +87,7 @@ client.on("messageCreate", async (message) => {
 
     // play music
     if (message.content.startsWith(`${prefix}play`) || message.content.startsWith(`${prefix}p`)) {
+        if (!message.member.voice.channel) return message.reply("Bạn phải vào voice channel trước khi dùng lệnh này!");
         // add music to list
         // kiểm tra xem link có hợp lệ không
         check = ytdl.validateURL(message.content.split(" ")[1]);
