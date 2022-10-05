@@ -1,16 +1,9 @@
 // Require the necessary discord.js classes
-const { Client, Collection, GatewayIntentBits, Partials } = require("discord.js");
-const { token, prefix, guildId } = require("./config.json");
-const fs = require("node:fs");
-const path = require("node:path");
+const { Client, GatewayIntentBits, Partials } = require("discord.js");
+const { token, prefix, guildId, youtubeAPIkey } = require("./config.json");
 const ytdl = require("ytdl-core");
-const {
-    joinVoiceChannel,
-    VoiceConnectionStatus,
-    createAudioPlayer,
-    createAudioResource,
-    AudioPlayerStatus,
-} = require("@discordjs/voice");
+const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require("@discordjs/voice");
+const search = require("youtube-search");
 
 // Create a new client instance ----------------------------
 const client = new Client({
@@ -29,17 +22,6 @@ const client = new Client({
         GatewayIntentBits.GuildMessages, // for guild messages
     ],
 });
-
-// Commands ------------------------------------------------
-client.commands = new Collection();
-const commandsPath = path.join(__dirname, "slash-commands");
-const commandFiles = fs.readdirSync(commandsPath).filter((file) => file.endsWith(".js"));
-
-for (const file of commandFiles) {
-    const filePath = path.join(commandsPath, file);
-    const command = require(filePath);
-    client.commands.set(command.data.name, command);
-}
 
 // Events --------------------------------------------------
 // When the client is ready, run this code (only once)
@@ -74,72 +56,105 @@ client.on("interactionCreate", async (interaction) => {
 
 let resource = [];
 let current_song = 0;
+
 client.on("messageCreate", async (message) => {
+    // nếu là bot thì thoát
     if (message.author.bot) return;
+    // nếu không có prefix thì thoát
     if (!message.content.startsWith(prefix)) return;
+    // hiển thị lệnh của người dùng
     console.log(`user ${message.author.tag} in channel #${message.channel.name} sent a message\n${message.content}`);
-    let connection = joinVoiceChannel({
-        channelId: message.member.voice.channel.id,
-        guildId: guildId[1],
-        adapterCreator: message.guild.voiceAdapterCreator,
-    });
-    // play music
-    if (message.content.startsWith(`${prefix}play`) || message.content.startsWith(`${prefix}p`)) {
-        // add music to list
-        // kiểm tra xem link có hợp lệ không
-        check = ytdl.validateURL(message.content.split(" ")[1]);
-        if (check) {
-            // nếu hợp lệ thì thêm link vào mảng chứa các bài hát
-            resource.push(message.content.split(" ")[1]);
-            // play music
-            await play(connection, resource[current_song]);
-        } else {
-            // nếu không hợp lệ thì thông báo cho user
-            await message.reply(`link không hợp lệ`);
+    // tách lệnh
+    try {
+        // tạo connection
+        let connection = joinVoiceChannel({
+            channelId: message.member.voice.channel.id,
+            guildId: guildId[0],
+            adapterCreator: message.guild.voiceAdapterCreator,
+        });
+
+        // join voice channel
+        if (message.content.startsWith(`${prefix}join`)) {
+            await message.reply("Đã vào nói gì nói đi");
+            return;
         }
-        return;
-    }
 
-    // list queue
-    if (message.content.startsWith(`${prefix}list`)) {
-        await message.reply(`Queue: ${resource.length}`);
-        for (let i = 0; i < resource.length; i++) {
-            await message.reply(`song ${i}: ${resource[i]}`);
+        // play music
+        if (message.content.startsWith(`${prefix}play`) || message.content.startsWith(`${prefix}p`)) {
+            // add music to list
+            // kiểm tra xem link có hợp lệ không
+            check = ytdl.validateURL(message.content.split(" ")[1]);
+            if (check) {
+                // nếu hợp lệ thì thêm link vào mảng chứa các bài hát
+                resource.push(message.content.split(" ")[1]);
+                // play music
+                await play(connection, resource[current_song]);
+            } else {
+                // nếu không hợp lệ thì tìm kiếm trên youtube
+                // tạo option cho youtube search
+                let opts = {
+                    maxResults: 1,
+                    key: youtubeAPIkey,
+                };
+                // tìm kiếm
+                search(message.content.split(" ")[1], opts, async (err, results) => {
+                    // nếu có lỗi thì thông báo
+                    if (err) return console.log(err);
+                    else {
+                        // nếu không có lỗi thì thêm link vào mảng chứa các bài hát
+                        await message.reply(results[0].title);
+                        resource.push(results[0].link);
+                        // play music
+                        await play(connection, resource[current_song]);
+                    }
+                });
+            }
+            return;
         }
-        return;
-    }
 
-    // now playing
-    if (message.content.startsWith(`${prefix}nowplay`) || message.content.startsWith(`${prefix}np`)) {
-        await message.reply(`Now playing song ${current_song} : ${resource[current_song]}`);
-        return;
-    }
-
-    // next song
-    if (message.content.startsWith(`${prefix}next`) || message.content.startsWith(`${prefix}skip`)) {
-        await next(connection);
-        return;
-    }
-
-    // stop music
-    if (message.content.startsWith(`${prefix}stop`)) {
-        await stop(connection);
-        return;
-    }
-
-    // another command
-    if (message.content.startsWith(`${prefix}`)) {
-        const ServerMessage = message.content.split(" ")[1];
-        let AnsewerMessage = "";
-        switch (ServerMessage.toLowerCase()) {
-            case "hi":
-                AnsewerMessage = `Hello ${message.author.username}!`;
-                break;
-            default:
-                AnsewerMessage = `I don't understand you! ${message.author.username}`;
-                break;
+        // list queue
+        if (message.content.startsWith(`${prefix}list`)) {
+            await message.reply(`Queue: ${resource.length}`);
+            for (let i = 0; i < resource.length; i++) {
+                await message.reply(`song ${i}: ${resource[i]}`);
+            }
+            return;
         }
-        await message.reply(`${AnsewerMessage}`);
+
+        // now playing
+        if (message.content.startsWith(`${prefix}nowplay`) || message.content.startsWith(`${prefix}np`)) {
+            await message.reply(`Now playing song ${current_song} : ${resource[current_song]}`);
+            return;
+        }
+
+        // next song
+        if (message.content.startsWith(`${prefix}next`) || message.content.startsWith(`${prefix}skip`)) {
+            await next(connection);
+            return;
+        }
+
+        // stop music
+        if (message.content.startsWith(`${prefix}stop`)) {
+            await stop(connection);
+            return;
+        }
+
+        // another command
+        if (message.content.startsWith(`${prefix}`)) {
+            const ServerMessage = message.content.split(" ")[1];
+            let AnsewerMessage = "";
+            switch (ServerMessage.toLowerCase()) {
+                case "hi":
+                    AnsewerMessage = `Hello ${message.author.username}!`;
+                    break;
+                default:
+                    AnsewerMessage = `I don't understand you! ${message.author.username}`;
+                    break;
+            }
+            await message.reply(`${AnsewerMessage}`);
+        }
+    } catch (ex) {
+        await message.reply("Vào phòng nào đó đi rồi gọi");
     }
 });
 // ---------------------------------------------------------
@@ -149,10 +164,10 @@ const play = async (connect, song) => {
     let stream = createAudioResource(ytdl(song, { filter: "audioonly" }));
     player.play(stream);
 
-    // state change
-    player.on("stateChange", (oldState, newState) => {
-        console.log(`Player transitioned from ${oldState.status} to ${newState.status}`);
-    });
+    // // state change
+    // player.on("stateChange", (oldState, newState) => {
+    //     console.log(`Player transitioned from ${oldState.status} to ${newState.status}`);
+    // });
 
     // show error
     player.on("error", (error) => {

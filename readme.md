@@ -20,7 +20,8 @@
     "token": "Your token here",
     "clientId": "your app id here",
     "guildId": ["your server discord list here"],
-    "prefix":"your prefix here"
+    "prefix":"your prefix here",
+    "youtubeAPIkey": "your youtube api key here",
 ```
 
 ###### next step install node modules
