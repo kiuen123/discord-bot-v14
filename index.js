@@ -1,9 +1,11 @@
 // Require the necessary discord.js classes
 const { Client, GatewayIntentBits, Partials } = require("discord.js");
 const { token, prefix, guildId, youtubeAPIkey } = require("./config.json");
-const ytdl = require("ytdl-core");
 const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require("@discordjs/voice");
 const search = require("youtube-search");
+const ytdl = require("ytdl-core");
+const { getInfo } = require("ytdl-getinfo");
+const fs = require("fs");
 
 // Create a new client instance ----------------------------
 const client = new Client({
@@ -53,9 +55,15 @@ client.on("interactionCreate", async (interaction) => {
 });
 
 // Music player --------------------------------------------
+// resource to use
+let resource = []; // list các bài hát
+let current_song = 0; // bài hát hiện tại
 
-let resource = [];
-let current_song = 0;
+// tạo option cho youtube search
+let opts = {
+    maxResults: 1,
+    key: youtubeAPIkey,
+};
 
 client.on("messageCreate", async (message) => {
     // nếu là bot thì thoát
@@ -64,6 +72,23 @@ client.on("messageCreate", async (message) => {
     if (!message.content.startsWith(prefix)) return;
     // hiển thị lệnh của người dùng
     console.log(`user ${message.author.tag} in channel #${message.channel.name} sent a message\n${message.content}`);
+
+    // another command
+    if (message.content.startsWith(`${prefix} `)) {
+        const ServerMessage = message.content.split(" ")[1];
+        let AnsewerMessage = "";
+        switch (ServerMessage.toLowerCase()) {
+            case "hi":
+                AnsewerMessage = `Hello ${message.author.username}!`;
+                break;
+            default:
+                AnsewerMessage = `Cái đéo gì thế ${message.author.username}!`;
+                break;
+        }
+        await message.reply(`${AnsewerMessage}`);
+        return;
+    }
+
     // tách lệnh
     try {
         // tạo connection
@@ -74,8 +99,18 @@ client.on("messageCreate", async (message) => {
         });
 
         // join voice channel
-        if (message.content.startsWith(`${prefix}join`)) {
-            await message.reply("Đã vào nói gì nói đi");
+        if (message.content.startsWith(`${prefix}join`) || message.content.startsWith(`${prefix}j`)) {
+            connection.on("error", (error) => {
+                console.error(error);
+            });
+            await message.reply("Đã vào rồi cần gì nói đi");
+            return;
+        }
+
+        // leave voice channel
+        if (message.content.startsWith(`${prefix}leave`) || message.content.startsWith(`${prefix}l`)) {
+            connection.destroy();
+            await message.reply("Some.one out !!!!");
             return;
         }
 
@@ -91,11 +126,6 @@ client.on("messageCreate", async (message) => {
                 await play(connection, resource[current_song]);
             } else {
                 // nếu không hợp lệ thì tìm kiếm trên youtube
-                // tạo option cho youtube search
-                let opts = {
-                    maxResults: 1,
-                    key: youtubeAPIkey,
-                };
                 // tìm kiếm
                 search(message.content.split(" ")[1], opts, async (err, results) => {
                     // nếu có lỗi thì thông báo
@@ -138,36 +168,31 @@ client.on("messageCreate", async (message) => {
             await stop(connection);
             return;
         }
-
-        // another command
-        if (message.content.startsWith(`${prefix}`)) {
-            const ServerMessage = message.content.split(" ")[1];
-            let AnsewerMessage = "";
-            switch (ServerMessage.toLowerCase()) {
-                case "hi":
-                    AnsewerMessage = `Hello ${message.author.username}!`;
-                    break;
-                default:
-                    AnsewerMessage = `I don't understand you! ${message.author.username}`;
-                    break;
-            }
-            await message.reply(`${AnsewerMessage}`);
-        }
     } catch (ex) {
         await message.reply("Vào phòng nào đó đi rồi gọi");
     }
 });
-// ---------------------------------------------------------
+
+// Music control--------------------------------------------
+// const download = async (url) => {
+//     let title = "";
+//     getInfo(url)
+//         .then((info) => {
+//             console.log(info.items[0].title);
+//             title = info.items[0].title;
+//         })
+//         .then(() => {
+//             ytdl(url, { filter: "audioonly" }).pipe(fs.createWriteStream(`./resource/${title}.mp3`));
+//         });
+
+//     return title;
+// };
+
 // play music
 const play = async (connect, song) => {
     let player = createAudioPlayer();
     let stream = createAudioResource(ytdl(song, { filter: "audioonly" }));
     player.play(stream);
-
-    // // state change
-    // player.on("stateChange", (oldState, newState) => {
-    //     console.log(`Player transitioned from ${oldState.status} to ${newState.status}`);
-    // });
 
     // show error
     player.on("error", (error) => {
@@ -192,6 +217,7 @@ const play = async (connect, song) => {
     // play music
     await connect.subscribe(player);
 };
+
 // next song
 const next = async (connect) => {
     if (resource.length > current_song + 1) {
@@ -205,6 +231,7 @@ const next = async (connect) => {
     }
 };
 
+// stop playing
 const stop = async (connect) => {
     resource = [];
     current_song = 0;

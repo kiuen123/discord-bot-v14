@@ -6,15 +6,15 @@
 -   I just create this for fun
 -   It not done yet because I so lazy
 
-## update
+## Update
 
 -   now can play music with youtube link
 -   can play, next, stop song using prefix
 -   error when trying to play music without not in the channel
 
-## install
+## Install
 
-###### before install: you create a config.json simple like
+###### before install: you need to create a config.json file simple like
 
 ```json
     "token": "Your token here",
@@ -38,7 +38,7 @@ or npm if you want
 npm install
 ```
 
-## run
+## Run
 
 use yarn
 
