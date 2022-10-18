@@ -1,6 +1,6 @@
 // Require the necessary discord.js classes
 const { Client, GatewayIntentBits, Partials } = require("discord.js");
-const { token, prefix, guildId, youtubeAPIkey } = require("./config.json");
+const { token, prefix, youtubeAPIkey } = require("./config.json");
 const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require("@discordjs/voice");
 const search = require("youtube-search");
 const ytdl = require("ytdl-core");
@@ -94,7 +94,7 @@ client.on("messageCreate", async (message) => {
         // tạo connection
         let connection = joinVoiceChannel({
             channelId: message.member.voice.channel.id,
-            guildId: guildId[0],
+            guildId: message.member.voice.channel.guild.id,
             adapterCreator: message.guild.voiceAdapterCreator,
         });
 
@@ -111,6 +111,14 @@ client.on("messageCreate", async (message) => {
         if (message.content.startsWith(`${prefix}leave`) || message.content.startsWith(`${prefix}l`)) {
             connection.destroy();
             await message.reply("Some.one out !!!!");
+            return;
+        }
+
+        // download song
+        if (message.content.startsWith(`${prefix}download`) || message.content.startsWith(`${prefix}d`)) {
+            const url = message.content.split(" ")[1];
+            const title = await download(url);
+            await message.reply(`Đã ${title} thêm nhạc vào server`);
             return;
         }
 
@@ -174,19 +182,18 @@ client.on("messageCreate", async (message) => {
 });
 
 // Music control--------------------------------------------
-// const download = async (url) => {
-//     let title = "";
-//     getInfo(url)
-//         .then((info) => {
-//             console.log(info.items[0].title);
-//             title = info.items[0].title;
-//         })
-//         .then(() => {
-//             ytdl(url, { filter: "audioonly" }).pipe(fs.createWriteStream(`./resource/${title}.mp3`));
-//         });
 
-//     return title;
-// };
+const download = (url) => {
+    let title = "";
+    getInfo(url).then(async (info) => {
+        console.log(info.items[0].title);
+        title = info.items[0].title;
+
+        await ytdl(url, { filter: "audioonly" }).pipe(fs.createWriteStream(`./resource/${title}.mp3`));
+    });
+
+    return title;
+};
 
 // play music
 const play = async (connect, song) => {
