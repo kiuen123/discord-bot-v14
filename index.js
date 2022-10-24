@@ -1,6 +1,6 @@
 // Require the necessary discord.js classes
 const { Client, GatewayIntentBits, Partials, Routes } = require("discord.js");
-const { token, prefix, youtubeAPIkey, clientId, guildId } = require("./config.json");
+const { token, prefix, youtubeAPIkey, clientId, listGuildId } = require("./config.json");
 const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require("@discordjs/voice");
 const search = require("youtube-search");
 const ytdl = require("ytdl-core");
