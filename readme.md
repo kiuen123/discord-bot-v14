@@ -17,10 +17,32 @@
 ###### before install: you need to create a config.json file simple like
 
 ```json
+{
     "token": "Your token here",
     "clientId": "your app id here",
-    "prefix":"your prefix here",
-    "youtubeAPIkey": "your youtube api key here",
+    "prefix": "your prefix here",
+    "listGuildId": ["your list guild id here"],
+    "youtubeAPIkey": "your youtube api key here"
+}
+```
+
+###### example
+
+```json
+{
+    "token": "xxxxxxxxxxxxxxxxxxxx",
+    "clientId": "xxxxxxxxxxxxxxxxxxxx",
+    "prefix": "xxxxxxxxxxxxxxxxxxxx",
+    "listGuildId": [
+        "xxxxxxxxxxxxxxxxxxxx",
+        "xxxxxxxxxxxxxxxxxxxx",
+        "xxxxxxxxxxxxxxxxxxxx",
+        "xxxxxxxxxxxxxxxxxxxx",
+        "xxxxxxxxxxxxxxxxxxxx",
+        "xxxxxxxxxxxxxxxxxxxx"
+    ],
+    "youtubeAPIkey": "xxxxxxxxxxxxxxxxxxxx"
+}
 ```
 
 ###### next step install node modules

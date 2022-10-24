@@ -1,11 +1,13 @@
 // Require the necessary discord.js classes
-const { Client, GatewayIntentBits, Partials } = require("discord.js");
-const { token, prefix, youtubeAPIkey } = require("./config.json");
+const { Client, GatewayIntentBits, Partials, Routes } = require("discord.js");
+const { token, prefix, youtubeAPIkey, clientId, guildId } = require("./config.json");
 const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require("@discordjs/voice");
 const search = require("youtube-search");
 const ytdl = require("ytdl-core");
 const { getInfo } = require("ytdl-getinfo");
 const fs = require("fs");
+const path = require("node:path");
+const { REST } = require("@discordjs/rest");
 
 // Create a new client instance ----------------------------
 const client = new Client({
@@ -54,7 +56,24 @@ client.on("interactionCreate", async (interaction) => {
     }
 });
 
-// Music player --------------------------------------------
+// Slash handle --------------------------------------------
+const commands = [];
+const commandsPath = path.join(__dirname, "slash-commands");
+const commandFiles = fs.readdirSync(commandsPath).filter((file) => file.endsWith(".js"));
+
+for (const file of commandFiles) {
+    const filePath = path.join(commandsPath, file);
+    const command = require(filePath);
+    commands.push(command.data.toJSON());
+}
+const rest = new REST({ version: "10" }).setToken(token);
+listGuildId.forEach((element) => {
+    rest.put(Routes.applicationGuildCommands(clientId, element), { body: commands })
+        .then((data) => console.log(`Successfully registered ${data.length} application commands.`))
+        .catch(console.error);
+});
+
+// Prefix handle -------------------------------------------
 // resource to use
 let resource = []; // list các bài hát
 let current_song = 0; // bài hát hiện tại
@@ -118,7 +137,7 @@ client.on("messageCreate", async (message) => {
         if (message.content.startsWith(`${prefix}download`) || message.content.startsWith(`${prefix}d`)) {
             const url = message.content.split(" ")[1];
             const title = await download(url);
-            await message.reply(`Đã ${title} thêm nhạc vào server`);
+            await message.reply(`Đã tải ${title} vào server`);
             return;
         }
 
@@ -177,12 +196,13 @@ client.on("messageCreate", async (message) => {
             return;
         }
     } catch (ex) {
-        await message.reply("Vào phòng nào đó đi rồi gọi");
+        console.log(ex);
+        await message.reply("Có lỗi j đó ở đây. Hmmmmmmmmm!");
     }
 });
 
 // Music control--------------------------------------------
-
+// download song
 const download = (url) => {
     let title = "";
     getInfo(url).then(async (info) => {
