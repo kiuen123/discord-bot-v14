@@ -26,6 +26,6 @@
     "ytsr": "^3.8.0"
   },
   "scripts": {
-    "start": "nodemon ./index.js"
+    "start": "npm update --save && npm install && nodemon ./index.js"
   }
 }
